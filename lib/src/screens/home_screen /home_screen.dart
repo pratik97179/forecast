@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 
 import 'package:weather_app/src/screens/home_screen%20/home_screen_provider.dart';
@@ -51,6 +52,7 @@ class _HomeScreenChildState extends State<HomeScreenChild>
       provider = widget.provider;
     }
     provider.callGeocodingApi(context);
+    provider.callWeatherApi(context);
     _ac = AnimationController(
       vsync: this,
       duration: const Duration(
@@ -72,7 +74,7 @@ class _HomeScreenChildState extends State<HomeScreenChild>
             appBackgroundImage(_height, _width),
             if (_ac.isAnimating || _ac.isCompleted) weatherCard(context),
             appLogo(context),
-            if (!_ac.isCompleted) appTitleAndCopyright(_height, _width)
+            if (!_ac.isCompleted) appTitleAndCopyright(_height, _width),
           ],
         ),
       ),
@@ -94,28 +96,28 @@ class _HomeScreenChildState extends State<HomeScreenChild>
 
   Widget weatherCard(BuildContext context) {
     return Transform(
-      alignment: Alignment.center,
-      transform: Matrix4.identity()
-        ..translate(
-          0.0,
-          MediaQuery.of(context).size.height * (1.125 - _ac.value),
-          0.0,
-        ),
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.875,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: Util().weatherCardGrad(),
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(30.0),
-            topRight: Radius.circular(30.0),
-            bottomLeft: Radius.zero,
-            bottomRight: Radius.zero,
-          ),
-        ),
-        child: WeatherWidget(provider: provider),
-      ),
-    );
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..translate(
+                0.0,
+                MediaQuery.of(context).size.height * (1.125 - _ac.value),
+                0.0,
+              ),
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.875,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: Util().weatherCardGrad(),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(30.0),
+                  topRight: Radius.circular(30.0),
+                  bottomLeft: Radius.zero,
+                  bottomRight: Radius.zero,
+                ),
+              ),
+              child: WeatherWidget(provider: provider),
+            ),
+          );
   }
 
   Widget appTitleAndCopyright(double _height, double _width) {
@@ -198,8 +200,7 @@ class _HomeScreenChildState extends State<HomeScreenChild>
             MediaQuery.of(context).size.height * -0.375 * (_ac.value),
             0.0,
           )
-          ..scale((1 - _ac.value) + 0.5)
-          ..rotateZ(asin(_ac.value)),
+          ..scale((1 - _ac.value) + 0.5),
         child: Center(
           child: SizedBox(
             width: MediaQuery.of(context).size.width * 0.4,

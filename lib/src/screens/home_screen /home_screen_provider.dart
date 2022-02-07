@@ -1,15 +1,17 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-
 import 'package:flutter/material.dart';
-import 'package:weather_app/src/api/api_key.dart';
 
-import 'package:weather_app/src/model/weather_response.dart';
+import 'package:weather_app/src/model/weather_response_model.dart';
+import 'package:weather_app/src/model/weather_repo.dart';
+import 'package:weather_app/src/model/geocoding_response_model.dart';
+import 'package:weather_app/src/model/geocoding_repo.dart';
 import 'package:weather_app/src/util/network_connection.dart';
 import 'package:weather_app/src/util/util_functions.dart';
 
 class HomeScreenProvider extends ChangeNotifier {
-  WeatherResponse _weatherResponse = WeatherResponse();
+  bool _geocodeApiRunning = false;
+  bool _weatherApiRunning = false;
+
+  WeatherResponseModel _weatherResponse = WeatherResponseModel();
   bool _isLogoTapped = false;
   final List<String> _weekdays = const [
     'Mon',
@@ -76,20 +78,36 @@ class HomeScreenProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  //Function to set coordinate of the entered city and also format the city name
+  void setLatLongCityName(GeocodingResponseModel resp) {
+    _longLat.clear();
+    _longLat.add(resp.features[0].center[0]);
+    _longLat.add(resp.features[0].center[1]);
+
+    _cityName =
+        "${resp.query[0].substring(0, 1).toUpperCase()}${resp.query[0].substring(1)}";
+    if (resp.query.length > 1) {
+      for (int i = 1; i < resp.query.length; i++) {
+        _cityName =
+            "$_cityName ${resp.query[i].substring(0, 1).toUpperCase()}${resp.query[i].substring(1)}";
+      }
+    }
+    notifyListeners();
+  }
+
   //Api to get weather report
-  Future<WeatherResponse> getWeatherApi(BuildContext context) async {
-    WeatherResponse resp;
-    await http
-        .get(Uri.parse(
-            "https://api.openweathermap.org/data/2.5/weather?lat=${_longLat[1]}&lon=${_longLat[0]}&units=metric&appid=${ApiKey.OPENWEATHER_API_KEY}"))
+  Future<WeatherResponseModel> getWeatherApi(BuildContext context) async {
+    WeatherResponseModel resp;
+    await WeatherRepository.weatherApi(context, _longLat[1], _longLat[0])
         .then((response) {
       if (response != null) {
-        _weatherResponse = WeatherResponse.fromJson(jsonDecode(response.body));
-        resp = _weatherResponse;
+        resp = response;
+        _weatherResponse = resp;
         notifyListeners();
       } else {
         _weatherResponse = null;
         resp = null;
+        return resp;
       }
     });
     return resp;
@@ -104,51 +122,37 @@ class HomeScreenProvider extends ChangeNotifier {
             (response) {
               if (response != null) {
                 if (response.status == 200) {
+                  _weatherApiRunning = false;
+                  notifyListeners();
                 } else {
-                  Util.showToast(response.cityName);
+                  Util.showToast("Error fetching weather details");
                 }
               }
             },
           );
         } else {
-          Util.showToast("Weather connection er");
+          Util.showToast("No Internet");
         }
       },
     );
   }
 
-  Future<List<double>> getGeoCodingApi(BuildContext context) async {
-    await http
-        .get(Uri.parse(
-            "https://api.mapbox.com/geocoding/v5/mapbox.places/'${_cityName}'.json?access_token=${ApiKey.GEOCODING_API_KEY}"))
-        .then(
+  //Api to get geocoding wrt to the entered city name
+  Future<GeocodingResponseModel> getGeoCodingApi(BuildContext context) async {
+    GeocodingResponseModel geocodingResp;
+    await GeocodingRepo.geoCodingApi(context, _cityName).then(
       (response) {
         if (response != null) {
-          _longLat.clear();
-          _longLat.add(jsonDecode(response.body)['features'][0]['center'][0]);
-          _longLat.add(jsonDecode(response.body)['features'][0]['center'][1]);
-
-          var resp = jsonDecode(response.body)['query'];
-
-          _cityName =
-              "${resp[0].substring(0, 1).toUpperCase()}${resp[0].substring(1)}";
-          if (resp.length > 1) {
-            for (int i = 1; i < resp.length; i++) {
-              _cityName =
-                  "$_cityName ${resp[i][0].substring(0, 1).toUpperCase()}${resp[i].substring(1)}";
-            }
-            notifyListeners();
-          }
-          callWeatherApi(context);
-          notifyListeners();
-          return _longLat;
+          geocodingResp = response;
         } else {
-          return <double>[];
+          geocodingResp = null;
         }
       },
     );
+    return geocodingResp;
   }
 
+  //Function to call geocoding api
   void callGeocodingApi(BuildContext context) async {
     await NetworkConnection().checkInternetConnection().then(
       (internet) async {
@@ -156,22 +160,37 @@ class HomeScreenProvider extends ChangeNotifier {
           await getGeoCodingApi(context).then(
             (response) {
               if (response != null) {
-                print('done');
+                setLatLongCityName(response);
+                _geocodeApiRunning = false;
+                notifyListeners();
               } else {
-                print("nah");
+                Util.showToast("Error fetching geo-codes");
               }
             },
           );
         } else {
-          Util.showToast('Geocoding connection er');
+          Util.showToast("No Internet");
         }
       },
     );
   }
 
   //getter and setter
-  WeatherResponse get weatherResponse => _weatherResponse;
-  set weatherResponse(WeatherResponse value) {
+
+  bool get geocodeApiRunning => _geocodeApiRunning;
+  set geocodeApiRunning(bool value) {
+    _geocodeApiRunning = value;
+    notifyListeners();
+  }
+
+  bool get weatherApiRunning => _weatherApiRunning;
+  set weatherApiRunning(bool value) {
+    _weatherApiRunning = value;
+    notifyListeners();
+  }
+
+  WeatherResponseModel get weatherResponse => _weatherResponse;
+  set weatherResponse(WeatherResponseModel value) {
     _weatherResponse = value;
     notifyListeners();
   }

@@ -1,4 +1,4 @@
-class WeatherResponse {
+class WeatherResponseModel {
   int id;
   String cityName;
   int status;
@@ -12,7 +12,7 @@ class WeatherResponse {
   int dt;
   Sys sys;
 
-  WeatherResponse({
+  WeatherResponseModel({
     this.id,
     this.cityName,
     this.status,
@@ -27,7 +27,7 @@ class WeatherResponse {
     this.sys,
   });
 
-  WeatherResponse.fromJson(Map<String, dynamic> json) {
+  WeatherResponseModel.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     cityName = json['name'];
     status = json['cod'];

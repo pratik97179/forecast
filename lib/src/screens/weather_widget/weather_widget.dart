@@ -111,13 +111,9 @@ class _WeatherWidgetState extends State<WeatherWidget> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 13.0, horizontal: 15.0),
         width: _width * 0.8,
-        // height: _height * 0.18,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(30.0),
           color: const Color(0xffFFAEBC),
-          // boxShadow: <BoxShadow>[
-          //   BoxShadow(co)
-          // ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
